@@ -14,6 +14,7 @@ import json
 import re
 from pathlib import Path
 from collections import defaultdict
+import context_filter
 
 def load_ontology(file_path):
     """Загрузка онтологии из JSON."""
