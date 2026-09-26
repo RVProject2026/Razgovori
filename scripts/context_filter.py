@@ -10,10 +10,10 @@ context_filter.py
 """
 
 import re
-import pymorphy2
+import pymorphy3
 
 # Инициализация морфологического анализатора
-morph = pymorphy2.MorphAnalyzer()
+morph = pymorphy3.MorphAnalyzer()
 
 # Словари маркеров, искажающих ценностное значение
 NEGATION_MARKERS = {
