@@ -33,6 +33,7 @@ Razgovori/
 ├── scripts/
 │ ├── validate_ontology.py # Скрипт валидации онтологии
 │ └── calculate_indices.py # Скрипт расчёта ИЦЛП, ИКАН, ИЦВ
+│ └── context_filter.py # Скрипт контекстного фильтра
 ├── examples/
 │ └── sample_teacher_reflection.txt # Тестовый текст для демонстрации
 ├── validation_report.json # Отчёт о валидации (генерируется автоматически)
