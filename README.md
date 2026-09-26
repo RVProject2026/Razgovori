@@ -26,19 +26,19 @@
 
 ---
 
-## Структура репозитория
+### 3. Структура репозитория после обновления
 Razgovori/
 ├── data/
-│ └── ontology.json # Онтология (1724 лексемы, 3 кластера)
-├── scripts/
-│ ├── validate_ontology.py # Скрипт валидации онтологии
-│ └── calculate_indices.py # Скрипт расчёта ИЦЛП, ИКАН, ИЦВ
-│ └── context_filter.py # Скрипт контекстного фильтра
+│ └── ontology.json
 ├── examples/
-│ └── sample_teacher_reflection.txt # Тестовый текст для демонстрации
-├── validation_report.json # Отчёт о валидации (генерируется автоматически)
-└── README.md # Этот файл
-
+│ └── sample_teacher_reflection.txt
+├── scripts/
+│ ├── calculate_indices.py
+│ ├── context_filter.py ← использует pymorphy3
+│ └── validate_ontology.py
+├── requirements.txt ← НОВЫЙ ФАЙЛ
+├── README.md ← ОБНОВЛЁН
+└── validation_report.json
 ---
 
 ## Методология
