@@ -5,7 +5,8 @@
 Скрипт расчёта индексов ИЦЛП, ИКАН и ИЦВ для образовательных текстов
 =============================================================================
 Автор: Шаповалов М.И.
-Назначение: Анализ текста на основе онтологии и расчёт трёх ключевых метрик.
+Назначение: Анализ текста на основе онтологии и расчёт трёх ключевых метрик
+            с использованием контекстно-зависимого фильтра (окно ±5 слов).
 Использование: python scripts/calculate_indices.py
 =============================================================================
 """
@@ -14,7 +15,7 @@ import json
 import re
 from pathlib import Path
 from collections import defaultdict
-import context_filter
+import context_filter  # Подключение модуля контекстной верификации
 
 def load_ontology(file_path):
     """Загрузка онтологии из JSON."""
@@ -26,8 +27,7 @@ def extract_words(text):
     return re.findall(r'\b[а-яА-ЯёЁa-zA-Z]+\b', text)
 
 def count_markers(text, ontology):
-    """Подсчёт маркеров и их валентности в тексте."""
-    text_lower = text.lower()
+    """Подсчёт маркеров и их валентности в тексте с учётом контекстного окна."""
     stats = {
         'universal': {'count': 0, 'valence_sum': 0.0, 'found': set()},
         'ideological': {'count': 0, 'valence_sum': 0.0, 'found': set()},
@@ -42,7 +42,6 @@ def count_markers(text, ontology):
             default_weight = subcat.get('default_weight', 1.0)
             
             for item in subcat['lexemes']:
-                # Поддержка как строк, так и словарей с valence/weight
                 if isinstance(item, str):
                     lexeme = item.lower()
                     valence = default_valence
@@ -52,18 +51,16 @@ def count_markers(text, ontology):
                     valence = item.get('valence', default_valence)
                     weight = item.get('weight', default_weight)
                 
-                # Поиск маркера в тексте (учитываем фразы типа "малая родина")
-                if lexeme in text_lower:
-                    # Для коротких слов (<=3 букв) проверяем границы слова, чтобы избежать ложных срабатываний
-                    if len(lexeme) <= 3:
-                        pattern = r'\b' + re.escape(lexeme) + r'\b'
-                        if not re.search(pattern, text_lower):
-                            continue
-                    
-                    stats[ctype]['count'] += 1
-                    stats[ctype]['valence_sum'] += (valence * weight)
+                # === ИЗМЕНЕНИЕ: Замена слепого поиска на контекстный фильтр ===
+                # Функция вернёт количество валидных вхождений леммы с учётом окна ±5 слов.
+                # Она автоматически отсеет иронию, отрицание и нецелевые части речи.
+                valid_count = context_filter.count_valid_markers(text, lexeme, window_size=5)
+                
+                if valid_count > 0:
+                    stats[ctype]['count'] += valid_count
+                    stats[ctype]['valence_sum'] += (valid_count * valence * weight)
                     stats[ctype]['found'].add(lexeme)
-                    total_markers_found += 1
+                    total_markers_found += valid_count
                     
     return stats, total_markers_found
 
@@ -74,8 +71,9 @@ def calculate_indices(text, ontology):
     
     stats, total_markers = count_markers(text, ontology)
     
-    # 1. ИЦЛП: маркеров на 1000 слов
-    iclp = (total_markers / total_words * 1000) if total_words > 0 else 0
+    # 1. ИЦЛП: процентное соотношение (согласно формуле в статье: N_цен / N_общ * 100)
+    # Ранее было * 1000, изменено на * 100 для 100% соответствия тексту статьи
+    iclp = (total_markers / total_words * 100) if total_words > 0 else 0
     
     # 2. ИКАН: универсальные / (универсальные + идеологические + социальные)
     uni = stats['universal']['count']
@@ -115,7 +113,7 @@ def main():
     with open(text_path, 'r', encoding='utf-8') as f:
         text = f.read()
         
-    print("🔄 Анализ текста и расчёт индексов...\n")
+    print("🔄 Анализ текста и расчёт индексов (с контекстным фильтром ±5 слов)...\n")
     results = calculate_indices(text, ontology)
     
     print("=" * 75)
@@ -126,9 +124,9 @@ def main():
     print(f"🎯 Найдено ценностных маркеров: {results['total_markers']}")
     print("-" * 75)
     
-    # Интерпретация ИЦЛП
-    iclp_interp = "Высокая" if results['iclp'] > 70 else "Средняя" if results['iclp'] > 40 else "Низкая"
-    print(f"📈 ИЦЛП (Ценностно-лексическая плотность): {results['iclp']}")
+    # Интерпретация ИЦЛП (пороги адаптированы под проценты, а не на 1000 слов)
+    iclp_interp = "Высокая" if results['iclp'] > 15 else "Средняя" if results['iclp'] > 5 else "Низкая"
+    print(f"📈 ИЦЛП (Ценностно-лексическая плотность): {results['iclp']}%")
     print(f"   → Интерпретация: {iclp_interp} насыщенность ценностной лексикой")
     
     # Интерпретация ИКАН
